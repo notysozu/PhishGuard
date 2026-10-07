@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PhishGuard — the explainable security agent
 
-## Getting Started
+Paste a suspicious email, text message or link. Instead of a bare safe/unsafe
+label, PhishGuard highlights the exact phrases and links that are warning
+signs, explains each trick in plain language, and tells you what to do next.
 
-First, run the development server:
+## Run it
 
 ```bash
+npm install
+cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Without an API key the app still works, using the
+built-in pattern scanner only (the result is labelled as such).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How it works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A LangGraph workflow in [lib/phishguard/graph.ts](lib/phishguard/graph.ts):
 
-## Learn More
+```
+START → scan → detect → explain → END
+          │       │
+          └───────┴──→ pattern_report → END   (no API key, or the AI call failed)
+```
 
-To learn more about Next.js, take a look at the following resources:
+| Node | What it does |
+| --- | --- |
+| `scan` | Deterministic scanner ([signals.ts](lib/phishguard/signals.ts)): look-alike and mismatched domains, shorteners, raw-IP links, spoofed senders, urgency, threats, credential and payment requests. |
+| `detect` | Agent 1, a security analyst. Confirms or rejects the scanner's hints, adds what it missed, and returns a structured verdict with verbatim evidence quotes. |
+| `explain` | Agent 2, an educator. Rewrites the analyst's findings in calm, jargon-free language with safety and recovery steps. It cannot change the verdict. |
+| `pattern_report` | Offline fallback that builds the report from scanner results and template wording. |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The API route ([app/api/analyze/route.ts](app/api/analyze/route.ts)) streams
+each step to the browser as NDJSON so the user sees progress.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Security notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Links in the pasted message are parsed as text only and never fetched.
+- The pasted message is treated as untrusted: it is wrapped in tags, and both
+  agents are instructed to ignore instructions inside it and to report such
+  attempts as a red flag.
+- Agent output is schema-constrained (zod structured outputs), and React
+  escapes everything rendered.
+- Input is capped at 20,000 characters and the route has a basic per-IP rate
+  limit (in-memory; use a shared store if you deploy more than one instance).
+- Nothing is stored server-side.
+# PhishGuard
