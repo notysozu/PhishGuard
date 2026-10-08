@@ -29,7 +29,10 @@ export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home
 Open the app, tap **Turn on**, and enable PhishGuard under notification access.
 Then tap **Send a fake scam message to test**.
 
-For AI explanations, enter your deployed server's address (for example
-`https://your-project.vercel.app`) under "Server address" in the app. The
-default `http://10.0.2.2:3000` reaches a local `npm run dev` from the emulator.
+AI explanations come from the deployed server at
+`https://phishguard.sonu-kumar.in`. To use another server (for example a local
+`npm run dev` at `http://10.0.2.2:3000` from the emulator), change
+`DEFAULT_SERVER` in [Store.kt](app/src/main/java/com/phishguard/app/Store.kt).
 Plain `http` is only allowed in debug builds.
+
+Screenshots are in the [main README](../README.md#android).
