@@ -39,7 +39,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -205,7 +204,6 @@ private fun HomeScreen(flagged: List<FlaggedItem>, onOpen: (FlaggedItem) -> Unit
                 )
             }
             items(flagged, key = { it.id }) { item -> FlaggedRow(item, onClick = { onOpen(item) }) }
-            item { ServerSetting() }
         }
     }
 }
@@ -285,33 +283,6 @@ private fun FlaggedRow(item: FlaggedItem, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-    }
-}
-
-@Composable
-private fun ServerSetting() {
-    val context = LocalContext.current
-    var url by remember { mutableStateOf(Store.serverUrl(context)) }
-    Column(Modifier.padding(top = 12.dp)) {
-        Text("AI explanations (optional)", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "A flagged message is only sent to this PhishGuard server when you tap " +
-                "\"Explain with AI\" on it.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = url,
-            onValueChange = {
-                url = it
-                Store.setServerUrl(context, it)
-            },
-            label = { Text("Server address") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

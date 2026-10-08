@@ -28,8 +28,8 @@ object Store {
     private const val KEY_SCANNED = "scanned"
     private const val KEY_SERVER = "server_url"
 
-    /** The emulator's alias for the host machine, where `npm run dev` serves the web app. */
-    const val DEFAULT_SERVER = "http://10.0.2.2:3000"
+    /** The deployed PhishGuard server. For a local `npm run dev`, use http://10.0.2.2:3000 on the emulator. */
+    const val DEFAULT_SERVER = "https://phishguard.sonu-kumar.in"
 
     val flagged = MutableStateFlow<List<FlaggedItem>>(emptyList())
     val scannedCount = MutableStateFlow(0)

@@ -12,7 +12,7 @@ looks like a scam.
 - A score of 30 or more posts a PhishGuard warning. Tapping it opens the
   message with the warning signs highlighted and explained.
 - "Explain with AI" on a flagged message sends that one message to the
-  PhishGuard web app's `/api/analyze` and shows the two-agent report.
+  PhishGuard server's `POST /api/v1/analyze` and shows the two-agent report.
 
 Notifications that look fine are counted and discarded. Only flagged ones are
 stored (the last 50, in app-private storage).
@@ -29,7 +29,7 @@ export JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-21.0.11/Contents/Home
 Open the app, tap **Turn on**, and enable PhishGuard under notification access.
 Then tap **Send a fake scam message to test**.
 
-For AI explanations, run the web app (`npm run dev` in the repo root). The
-default server address `http://10.0.2.2:3000` reaches it from the emulator; on
-a real phone, enter your computer's LAN address instead. Plain `http` is only
-allowed in debug builds.
+For AI explanations, enter your deployed server's address (for example
+`https://your-project.vercel.app`) under "Server address" in the app. The
+default `http://10.0.2.2:3000` reaches a local `npm run dev` from the emulator.
+Plain `http` is only allowed in debug builds.

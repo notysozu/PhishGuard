@@ -1,7 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { ApiError, GoogleGenAI } from "@google/genai";
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
-import type { z } from "zod";
+import { z } from "zod";
 import { scanSignals, scoreSignals } from "./signals";
 import {
   DetectionSchema,
@@ -14,10 +13,11 @@ import {
   type Verdict,
 } from "./types";
 
-const MODEL = process.env.PHISHGUARD_MODEL ?? "claude-opus-5-5";
+const MODEL = process.env.PHISHGUARD_MODEL ?? "gemini-2.5-flash";
 
-export const aiAvailable = () =>
-  Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+const apiKey = () => process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+export const aiAvailable = () => Boolean(apiKey());
 
 const State = Annotation.Root({
   input: Annotation<string>,
@@ -58,26 +58,23 @@ async function callAgent<T extends z.ZodType>(opts: {
   system: string;
   user: string;
   schema: T;
-  effort: "low" | "medium";
 }): Promise<z.infer<T>> {
-  const client = new Anthropic();
-  const response = await client.messages.parse({
+  const client = new GoogleGenAI({ apiKey: apiKey() });
+  const response = await client.models.generateContent({
     model: MODEL,
-    max_tokens: 16000,
-    system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
-    output_config: {
-      effort: opts.effort,
-      format: zodOutputFormat(opts.schema),
+    contents: opts.user,
+    config: {
+      systemInstruction: opts.system,
+      responseMimeType: "application/json",
+      responseJsonSchema: z.toJSONSchema(opts.schema),
     },
   });
-  if (response.stop_reason === "refusal") {
-    throw new Error("The AI model declined to analyse this message.");
+  if (!response.text) {
+    const reason =
+      response.promptFeedback?.blockReason ?? response.candidates?.[0]?.finishReason;
+    throw new Error(`The AI model returned no answer (${reason ?? "unknown reason"}).`);
   }
-  if (!response.parsed_output) {
-    throw new Error(`No structured output (stop_reason: ${response.stop_reason})`);
-  }
-  return response.parsed_output;
+  return opts.schema.parse(JSON.parse(response.text));
 }
 
 const wrap = (input: string) =>
@@ -99,7 +96,6 @@ async function detectorNode(state: GraphState) {
     const detection = await callAgent({
       system: DETECTOR_SYSTEM,
       schema: DetectionSchema,
-      effort: "medium",
       user: `${wrap(state.input)}\n\n<scanner_findings>\n${JSON.stringify(
         state.signals,
         null,
@@ -125,7 +121,6 @@ async function explainerNode(state: GraphState) {
     const explanation = await callAgent({
       system: EXPLAINER_SYSTEM,
       schema: ExplanationSchema,
-      effort: "low",
       user: `${wrap(state.input)}\n\n<analyst_assessment>\n${JSON.stringify(
         detection,
         null,
@@ -220,10 +215,12 @@ export const phishGuardGraph = new StateGraph(State)
 // ── Template copy for the offline path ───────────────────────────────────────
 
 function describeError(err: unknown): string {
-  if (err instanceof Anthropic.AuthenticationError) return "the API key was rejected";
-  if (err instanceof Anthropic.RateLimitError) return "rate limit reached";
-  if (err instanceof Anthropic.APIConnectionError) return "could not reach the AI service";
-  if (err instanceof Anthropic.APIError) return `AI service error ${err.status ?? ""}`.trim();
+  if (err instanceof ApiError) {
+    if (err.status === 400 || err.status === 401 || err.status === 403)
+      return "the API key or request was rejected";
+    if (err.status === 429) return "rate limit reached";
+    return `AI service error ${err.status}`;
+  }
   return err instanceof Error ? err.message : "unknown error";
 }
 

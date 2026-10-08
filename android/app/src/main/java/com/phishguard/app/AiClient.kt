@@ -18,12 +18,12 @@ data class AiReport(
     val notice: String?,
 )
 
-/** Calls the PhishGuard web app's /api/analyze endpoint (NDJSON stream). */
+/** Calls the PhishGuard server's JSON API: POST /api/v1/analyze. */
 object AiClient {
     suspend fun explain(serverUrl: String, text: String): Result<AiReport> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val connection = URL(serverUrl.trimEnd('/') + "/api/analyze")
+                val connection = URL(serverUrl.trimEnd('/') + "/api/v1/analyze")
                     .openConnection() as HttpURLConnection
                 try {
                     connection.requestMethod = "POST"
@@ -40,16 +40,8 @@ object AiClient {
                             .getOrDefault("Server returned ${connection.responseCode}")
                         error(message)
                     }
-                    var report: AiReport? = null
-                    connection.inputStream.bufferedReader().forEachLine { line ->
-                        if (line.isBlank()) return@forEachLine
-                        val event = JSONObject(line)
-                        when (event.getString("type")) {
-                            "report" -> report = parse(event.getJSONObject("report"))
-                            "error" -> error(event.getString("message"))
-                        }
-                    }
-                    report ?: error("The server sent no result")
+                    val body = connection.inputStream.bufferedReader().readText()
+                    parse(JSONObject(body).getJSONObject("report"))
                 } finally {
                     connection.disconnect()
                 }
