@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test \"tests/**/*.test.{ts,tsx}\"",
+    "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-include=\"lib/**\" --test-coverage-include=\"app/api/**\" --test-coverage-include=\"components/**\" \"tests/**/*.test.{ts,tsx}\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@google/genai": "^2.27.0",
@@ -26,6 +29,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"

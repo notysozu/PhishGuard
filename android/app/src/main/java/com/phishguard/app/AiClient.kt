@@ -2,66 +2,47 @@ package com.phishguard.app
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class AiFlag(val title: String, val evidence: String, val explanation: String)
-
-data class AiReport(
-    val headline: String,
-    val summary: String,
-    val redFlags: List<AiFlag>,
-    val safetySteps: List<String>,
-    val ifAlreadyClicked: List<String>,
-    val notice: String?,
-)
-
-/** Calls the PhishGuard server's JSON API: POST /api/v1/analyze. */
+/** Calls the PhishGuard server's JSON API: `POST /api/v1/analyze`. */
 object AiClient {
-    suspend fun explain(serverUrl: String, text: String): Result<AiReport> =
+    /**
+     * The deployed PhishGuard server. For a local `npm run dev`, use
+     * `http://10.0.2.2:3000` on the emulator (debug builds only).
+     */
+    const val SERVER_URL = "https://phishguard.sonu-kumar.in"
+
+    private const val CONNECT_TIMEOUT_MS = 10_000
+    private const val READ_TIMEOUT_MS = 120_000
+
+    /** Sends one message for analysis. Never throws; failures are in the [Result]. */
+    suspend fun explain(text: String, serverUrl: String = SERVER_URL): Result<AiReport> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val connection = URL(serverUrl.trimEnd('/') + "/api/v1/analyze")
                     .openConnection() as HttpURLConnection
                 try {
                     connection.requestMethod = "POST"
-                    connection.connectTimeout = 10_000
-                    connection.readTimeout = 120_000
+                    connection.connectTimeout = CONNECT_TIMEOUT_MS
+                    connection.readTimeout = READ_TIMEOUT_MS
                     connection.doOutput = true
                     connection.setRequestProperty("Content-Type", "application/json")
                     connection.outputStream.use {
                         it.write(JSONObject().put("text", text).toString().toByteArray())
                     }
-                    if (connection.responseCode != 200) {
+                    if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                         val body = connection.errorStream?.bufferedReader()?.readText().orEmpty()
-                        val message = runCatching { JSONObject(body).getString("error") }
-                            .getOrDefault("Server returned ${connection.responseCode}")
-                        error(message)
+                        error(
+                            AiReport.errorFrom(body)
+                                ?: "Server returned ${connection.responseCode}"
+                        )
                     }
-                    val body = connection.inputStream.bufferedReader().readText()
-                    parse(JSONObject(body).getJSONObject("report"))
+                    AiReport.fromResponse(connection.inputStream.bufferedReader().readText())
                 } finally {
                     connection.disconnect()
                 }
             }
         }
-
-    private fun JSONArray.strings() = List(length()) { getString(it) }
-
-    private fun parse(o: JSONObject): AiReport {
-        val flags = o.getJSONArray("redFlags")
-        return AiReport(
-            headline = o.getString("headline"),
-            summary = o.getString("summary"),
-            redFlags = List(flags.length()) {
-                val f = flags.getJSONObject(it)
-                AiFlag(f.getString("title"), f.getString("evidence"), f.getString("explanation"))
-            },
-            safetySteps = o.getJSONArray("safetySteps").strings(),
-            ifAlreadyClicked = o.getJSONArray("ifAlreadyClicked").strings(),
-            notice = o.optString("notice").takeIf { it.isNotBlank() },
-        )
-    }
 }

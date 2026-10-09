@@ -50,9 +50,22 @@ data class Signal(
     val reason: String,
 )
 
+/** The scanner's result for one piece of text. */
+data class Assessment(val score: Int, val signals: List<Signal>) {
+    val verdict get() = PhishScanner.verdict(score)
+
+    /** True when the text is risky enough to warn the user about. */
+    val isFlagged get() = score >= PhishScanner.SUSPICIOUS_AT
+}
+
 object PhishScanner {
     const val SUSPICIOUS_AT = 30
     const val DANGEROUS_AT = 65
+
+    fun assess(text: String): Assessment {
+        val signals = scan(text)
+        return Assessment(score(signals), signals)
+    }
 
     private val SHORTENERS = setOf(
         "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",

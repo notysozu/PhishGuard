@@ -1,0 +1,7 @@
+.next
+node_modules
+android
+docs
+package-lock.json
+next-env.d.ts
+*.md

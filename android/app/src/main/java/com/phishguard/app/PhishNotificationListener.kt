@@ -18,11 +18,6 @@ class PhishNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         Store.init(this)
         Alerts.ensureChannels(this)
-        Store.listenerConnected.value = true
-    }
-
-    override fun onListenerDisconnected() {
-        Store.listenerConnected.value = false
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -41,9 +36,8 @@ class PhishNotificationListener : NotificationListenerService() {
         if (lastSeen.put(sbn.key, hash) == hash) return
 
         Store.recordScan(this)
-        val signals = PhishScanner.scan(text)
-        val score = PhishScanner.score(signals)
-        if (score < PhishScanner.SUSPICIOUS_AT) return
+        val assessment = PhishScanner.assess(text)
+        if (!assessment.isFlagged) return
 
         val item = FlaggedItem(
             id = System.currentTimeMillis(),
@@ -51,8 +45,8 @@ class PhishNotificationListener : NotificationListenerService() {
             appName = appLabel(sbn.packageName),
             text = text,
             time = sbn.postTime,
-            score = score,
-            signals = signals,
+            score = assessment.score,
+            signals = assessment.signals,
         )
         Store.add(this, item)
         Alerts.warn(this, item)

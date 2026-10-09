@@ -14,7 +14,9 @@ test("built-in scam samples are flagged, the ordinary one is not", () => {
 });
 
 test("look-alike domain: brand name on someone else's domain", () => {
-  const [signal] = scanSignals("Log in at http://paypal.com.account-verify.secure-login.xyz/restore");
+  const [signal] = scanSignals(
+    "Log in at http://paypal.com.account-verify.secure-login.xyz/restore",
+  );
   assert.equal(signal.category, "suspicious_link");
   assert.equal(signal.severity, "high");
   assert.match(signal.reason, /secure-login\.xyz/);
@@ -48,7 +50,8 @@ test("an email address is not mistaken for a link", () => {
 
 test("evidence is always a verbatim quote, so the UI can highlight it", () => {
   for (const { text } of SAMPLES)
-    for (const signal of scanSignals(text)) assert.ok(text.includes(signal.evidence), signal.evidence);
+    for (const signal of scanSignals(text))
+      assert.ok(text.includes(signal.evidence), signal.evidence);
 });
 
 test("repeated signals of one kind cannot max out the score alone", () => {

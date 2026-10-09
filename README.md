@@ -84,12 +84,25 @@ is that one message sent to the server.
 ## Project layout
 
 ```
-app/                    Next.js app: UI and API routes
+app/                    Next.js routes
+  page.tsx              The page (server component)
   api/analyze/          NDJSON stream for the web page (shows progress per step)
   api/v1/analyze/       JSON API for the Android app and other clients
-lib/phishguard/         Scanner, LangGraph workflow, shared types
-tests/                  Scanner unit tests
-android/                Android app (Kotlin, Jetpack Compose)
+components/             UI: form, progress, verdict, highlighted message, warning signs
+hooks/useAnalysis.ts    Client state for one check: request, progress, result
+lib/phishguard/
+  signals.ts            Deterministic pattern scanner
+  graph.ts              LangGraph workflow (nodes and edges only)
+  prompts.ts            Agent instructions and untrusted-input fencing
+  model.ts              Gemini call with schema-validated output
+  report.ts             Pure functions that build the final report
+  copy.ts               Fallback wording when the AI is unavailable
+  request.ts            Input validation and rate limiting
+  highlight.ts          Maps evidence quotes onto the message text
+  ndjson.ts             Stream reader used by the web client
+  types.ts              Zod schemas and shared types
+tests/                  Unit, workflow, API-route and component tests
+android/                Android app (Kotlin, Jetpack Compose) with its own unit tests
 docs/screenshots/       Images used in this README
 ```
 
@@ -109,14 +122,44 @@ pattern scanner only.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Start the dev server |
-| `npm test` | Scanner unit tests |
+| `npm test` | All tests |
+| `npm run test:coverage` | Tests with a coverage report (fails under 90% of lines) |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript |
+| `npm run format` / `npm run format:check` | Prettier |
 | `npm run build` | Production build |
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | for AI mode | Gemini API key used by both agents |
 | `PHISHGUARD_MODEL` | no | Model override (default `gemini-2.5-flash`) |
+
+## Testing
+
+`npm test` runs the suite with Node's built-in test runner. No network or API key is needed:
+
+- **Scanner**: look-alike domains, digit swaps, mismatched links, spoofed
+  senders, and that ordinary messages are left alone.
+- **Workflow**: the LangGraph graph with a fake model, covering the AI path,
+  both fallbacks, schema-breaking model output and a prompt-injection attempt.
+- **API routes**: both endpoints called directly, including 400, 413 and 429.
+- **Components**: rendered to HTML to check structure, labels and ARIA
+  attributes, and that message text is escaped.
+
+The Android app has its own JUnit tests for the Kotlin scanner, stored-item
+encoding and server-response parsing (`./gradlew testDebugUnitTest`). CI runs
+both suites on every push.
+
+## Accessibility
+
+- Every state has a text label as well as a colour (verdict, severity, progress).
+- Highlights in the message are links to their explanations, so they work by
+  keyboard and screen reader as well as on hover.
+- Progress is announced through a live region, and focus moves to the result
+  when it arrives.
+- Visible focus outlines, a skip link, labelled form controls, and
+  `prefers-reduced-motion` is respected.
+- On Android, section titles are exposed as headings and status changes are
+  announced to TalkBack.
 
 ## API
 

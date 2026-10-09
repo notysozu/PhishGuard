@@ -45,4 +45,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
 
     testImplementation("junit:junit:4.13.2")
+    // The real org.json, so JSON code can be unit-tested on the JVM (android.jar only has stubs).
+    testImplementation("org.json:json:20240303")
 }

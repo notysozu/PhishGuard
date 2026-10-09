@@ -3,21 +3,25 @@ import type { Signal, Severity } from "./types";
 // Deterministic pattern scanner. It never fetches or opens anything in the
 // message: links are only parsed as text.
 
+// prettier-ignore
 const SHORTENERS = new Set([
   "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
   "rebrand.ly", "cutt.ly", "shorturl.at", "rb.gy", "tiny.cc", "t.ly",
 ]);
 
+// prettier-ignore
 const RISKY_TLDS = new Set([
   "xyz", "top", "click", "link", "zip", "mov", "tk", "ml", "ga", "cf", "gq",
   "icu", "cam", "rest", "buzz", "monster", "live", "shop", "support", "info",
 ]);
 
+// prettier-ignore
 const TWO_PART_TLDS = new Set([
   "co.uk", "org.uk", "ac.uk", "gov.uk", "com.au", "co.in", "net.in", "org.in",
   "gov.in", "co.nz", "co.za", "com.br", "co.jp", "com.sg", "com.mx",
 ]);
 
+// prettier-ignore
 const BRANDS = [
   "paypal", "amazon", "apple", "icloud", "microsoft", "outlook", "office365",
   "google", "gmail", "netflix", "facebook", "instagram", "whatsapp", "linkedin",
@@ -98,8 +102,14 @@ export function registrableDomain(host: string): string {
 }
 
 const deLeet = (s: string) =>
-  s.replace(/0/g, "o").replace(/[1!|]/g, "l").replace(/3/g, "e")
-    .replace(/5/g, "s").replace(/4|@/g, "a").replace(/rn/g, "m").replace(/vv/g, "w");
+  s
+    .replace(/0/g, "o")
+    .replace(/[1!|]/g, "l")
+    .replace(/3/g, "e")
+    .replace(/5/g, "s")
+    .replace(/4|@/g, "a")
+    .replace(/rn/g, "m")
+    .replace(/vv/g, "w");
 
 function impersonatedBrand(host: string): string | null {
   const domain = registrableDomain(host);
@@ -107,8 +117,7 @@ function impersonatedBrand(host: string): string | null {
   const labels = host.split(/[.-]/);
   for (const brand of BRANDS) {
     if (sld === brand) return null; // the brand's own domain
-    const matches = (s: string) =>
-      brand.length <= 4 ? s === brand : s.includes(brand);
+    const matches = (s: string) => (brand.length <= 4 ? s === brand : s.includes(brand));
     if (labels.some((l) => matches(l) || matches(deLeet(l)))) return brand;
   }
   return null;
@@ -137,10 +146,8 @@ function checkUrl(raw: string): Signal[] {
   const tld = host.split(".").pop() ?? "";
   if (RISKY_TLDS.has(tld) && !brand)
     add("low", `Link ends in ".${tld}", an ending often used for throwaway sites`);
-  if (host.split(".").length >= 5)
-    add("medium", "Link has an unusually long chain of subdomains");
-  if (/^http:\/\//i.test(raw))
-    add("low", "Link is not encrypted (http instead of https)");
+  if (host.split(".").length >= 5) add("medium", "Link has an unusually long chain of subdomains");
+  if (/^http:\/\//i.test(raw)) add("low", "Link is not encrypted (http instead of https)");
 
   if (!found.length) return [];
   found.sort((a, b) => RANK[b.severity] - RANK[a.severity]);
@@ -189,11 +196,7 @@ function checkSender(text: string): Signal[] {
   const domain = registrableDomain(host.toLowerCase());
   const brand =
     impersonatedBrand(host.toLowerCase()) ??
-    BRANDS.find(
-      (b) =>
-        new RegExp(`\\b${b}\\b`, "i").test(display) &&
-        domain.split(".")[0] !== b
-    );
+    BRANDS.find((b) => new RegExp(`\\b${b}\\b`, "i").test(display) && domain.split(".")[0] !== b);
   if (brand) {
     out.push({
       category: "spoofed_sender",

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     console.error("[phishguard] analysis failed:", err);
     return Response.json(
       { error: "Something went wrong while checking this. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
