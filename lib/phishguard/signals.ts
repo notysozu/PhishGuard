@@ -57,7 +57,7 @@ const PHRASES: Phrase[] = [
     reason: "Asks for a password, code or personal details",
   },
   {
-    re: /\b(gift cards?|wire transfer|western union|moneygram|bitcoin|crypto(currency)?|processing fee|customs fee|redelivery fee|pay (a |the )?(small )?fee|send (the )?money)\b/gi,
+    re: /\b(gift cards?|wire transfer|western union|moneygram|bitcoin|crypto(currency)?|(processing|registration|clearance|release|transfer|handling|courier|customs|redelivery|activation|claim) (fee|charge)s?|advance (fee|payment|tax)|(tax|taxes|gst|duty) (upfront|in advance|first)|pay (the )?(tax|taxes|gst|duty)|pay (a |the )?(small )?fee|send (the )?money)\b/gi,
     category: "payment_request",
     severity: "high",
     reason: "Asks for money through a hard-to-reverse payment method",
@@ -85,7 +85,8 @@ const PHRASES: Phrase[] = [
 const URL_RE =
   /\b(?:https?:\/\/|www\.)[^\s<>"')\]]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|info|xyz|top|click|link|co|io|me|ly|in|uk|us|ru|cn|tk|icu|shop|live|app|site|online)\b(?:\/[^\s<>"')\]]*)?/gi;
 
-function parseHost(raw: string): string | null {
+/** Hostname of a link, lower-cased and without "www.". Null if it is not a valid URL. */
+export function parseHost(raw: string): string | null {
   try {
     const url = new URL(/^https?:\/\//i.test(raw) ? raw : `http://${raw}`);
     return url.hostname.toLowerCase().replace(/^www\./, "");
@@ -94,9 +95,12 @@ function parseHost(raw: string): string | null {
   }
 }
 
+const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+/** The part of a hostname someone registers, e.g. "example.co.uk". IP addresses are returned whole. */
 export function registrableDomain(host: string): string {
   const labels = host.split(".");
-  if (labels.length <= 2) return host;
+  if (labels.length <= 2 || IPV4.test(host)) return host;
   const lastTwo = labels.slice(-2).join(".");
   return TWO_PART_TLDS.has(lastTwo) ? labels.slice(-3).join(".") : lastTwo;
 }
@@ -111,12 +115,25 @@ const deLeet = (s: string) =>
     .replace(/rn/g, "m")
     .replace(/vv/g, "w");
 
-function impersonatedBrand(host: string): string | null {
-  const domain = registrableDomain(host);
-  const sld = domain.split(".")[0];
+/** Number of commonly impersonated brands the scanner knows. */
+export const KNOWN_BRAND_COUNT = BRANDS.length;
+
+export const isShortener = (host: string) => SHORTENERS.has(registrableDomain(host));
+
+const topLevelDomain = (host: string) => host.split(".").pop() ?? "";
+
+/** The brand whose own domain this is (e.g. "paypal" for paypal.com), if any. */
+export function ownBrandDomain(host: string): string | null {
+  const sld = registrableDomain(host).split(".")[0];
+  if (RISKY_TLDS.has(topLevelDomain(host))) return null; // paypal.xyz is not PayPal
+  return BRANDS.includes(sld) ? sld : null;
+}
+
+/** The brand a host borrows the name of without being that brand's domain, if any. */
+export function impersonatedBrand(host: string): string | null {
+  if (ownBrandDomain(host)) return null;
   const labels = host.split(/[.-]/);
   for (const brand of BRANDS) {
-    if (sld === brand) return null; // the brand's own domain
     const matches = (s: string) => (brand.length <= 4 ? s === brand : s.includes(brand));
     if (labels.some((l) => matches(l) || matches(deLeet(l)))) return brand;
   }
@@ -135,15 +152,14 @@ function checkUrl(raw: string): Signal[] {
   const brand = impersonatedBrand(host);
   if (brand)
     add("high", `Link uses the name "${brand}" but actually goes to ${registrableDomain(host)}`);
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host))
-    add("high", "Link points to a raw IP address instead of a named website");
+  if (IPV4.test(host)) add("high", "Link points to a raw IP address instead of a named website");
   if (host.includes("xn--"))
     add("high", "Link uses look-alike international characters (punycode)");
   if (/^https?:\/\/[^/]*@/i.test(raw))
     add("high", 'Link contains "@", which hides the real destination');
   if (SHORTENERS.has(registrableDomain(host)))
     add("medium", "Shortened link hides where it really goes");
-  const tld = host.split(".").pop() ?? "";
+  const tld = topLevelDomain(host);
   if (RISKY_TLDS.has(tld) && !brand)
     add("low", `Link ends in ".${tld}", an ending often used for throwaway sites`);
   if (host.split(".").length >= 5) add("medium", "Link has an unusually long chain of subdomains");
@@ -208,18 +224,25 @@ function checkSender(text: string): Signal[] {
   return out;
 }
 
+const trimUrl = (raw: string) => raw.replace(/[.,;:!?]+$/, "");
+
+/** Every distinct link in the text, in order. The domain half of an email address is skipped. */
+export function extractUrls(text: string): string[] {
+  const urls = new Set<string>();
+  for (const match of text.matchAll(URL_RE)) {
+    if (text[match.index - 1] !== "@") urls.add(trimUrl(match[0]));
+  }
+  return [...urls];
+}
+
 export function scanSignals(text: string): Signal[] {
   const signals: Signal[] = [...checkSender(text), ...checkMismatchedLinks(text)];
 
   // Links already reported as mismatched, and the domain half of an email
   // address, are not reported a second time.
   const covered = signals.map((s) => s.evidence).join("\n");
-  const seenUrls = new Set<string>();
-  for (const m of text.matchAll(URL_RE)) {
-    const url = m[0].replace(/[.,;:!?]+$/, "");
-    if (seenUrls.has(url) || text[m.index - 1] === "@" || covered.includes(url)) continue;
-    seenUrls.add(url);
-    signals.push(...checkUrl(url));
+  for (const url of extractUrls(text)) {
+    if (!covered.includes(url)) signals.push(...checkUrl(url));
   }
 
   for (const p of PHRASES) {

@@ -2,6 +2,7 @@ import type { ProgressStep } from "@/lib/phishguard/types";
 
 const STEPS: { id: ProgressStep; label: string }[] = [
   { id: "scan", label: "Scanning for known scam patterns" },
+  { id: "verify", label: "Checking any website: redirects, age, threat lists, reputation" },
   { id: "detect", label: "Security analyst reviewing the message" },
   { id: "explain", label: "Writing your plain-language explanation" },
 ];

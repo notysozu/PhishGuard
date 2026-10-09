@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PhishGuard — check a suspicious message",
   description:
-    "Paste a suspicious email, text or link and get a plain-language explanation of whether it is a scam, why, and what to do.",
+    "Paste a suspicious email, text or website link. PhishGuard checks reputation, domain age, threat lists and lottery organizers, and explains every finding in plain language.",
 };
 
 export const viewport: Viewport = {

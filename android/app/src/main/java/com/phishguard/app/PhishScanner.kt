@@ -113,7 +113,7 @@ object PhishScanner {
             Category.CREDENTIAL_REQUEST, Severity.HIGH, "Asks for a password, code or personal details",
         ),
         Phrase(
-            """\b(gift cards?|wire transfer|western union|moneygram|bitcoin|crypto(currency)?|processing fee|customs fee|redelivery fee|pay (a |the )?(small )?fee|send (the )?money)\b""",
+            """\b(gift cards?|wire transfer|western union|moneygram|bitcoin|crypto(currency)?|(processing|registration|clearance|release|transfer|handling|courier|customs|redelivery|activation|claim) (fee|charge)s?|advance (fee|payment|tax)|(tax|taxes|gst|duty) (upfront|in advance|first)|pay (the )?(tax|taxes|gst|duty)|pay (a |the )?(small )?fee|send (the )?money)\b""",
             Category.PAYMENT_REQUEST, Severity.HIGH, "Asks for money through a hard-to-reverse payment method",
         ),
         Phrase(
@@ -157,11 +157,16 @@ object PhishScanner {
         .replace('3', 'e').replace('5', 's').replace('4', 'a').replace('@', 'a')
         .replace("rn", "m").replace("vv", "w")
 
+    /** The brand whose own domain this is (e.g. "paypal" for paypal.com), if any. */
+    private fun ownBrandDomain(host: String): String? {
+        if (host.substringAfterLast('.') in RISKY_TLDS) return null // paypal.xyz is not PayPal
+        return registrableDomain(host).substringBefore('.').takeIf { it in BRANDS }
+    }
+
     private fun impersonatedBrand(host: String): String? {
-        val sld = registrableDomain(host).substringBefore('.')
+        if (ownBrandDomain(host) != null) return null
         val labels = host.split('.', '-')
         for (brand in BRANDS) {
-            if (sld == brand) return null // the brand's own domain
             fun matches(s: String) = if (brand.length <= 4) s == brand else brand in s
             if (labels.any { matches(it) || matches(deLeet(it)) }) return brand
         }

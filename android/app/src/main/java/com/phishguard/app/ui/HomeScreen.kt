@@ -31,7 +31,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,11 +42,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -57,6 +60,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.phishguard.app.Alerts
 import com.phishguard.app.FlaggedItem
+import com.phishguard.app.MAX_CHECK_CHARS
+import com.phishguard.app.R
 import com.phishguard.app.Store
 
 private fun Context.hasNotificationAccess() =
@@ -67,10 +72,14 @@ private fun Context.canPostNotifications() =
         ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED
 
-/** Status, setup prompts and the list of flagged notifications. */
+/** Status, a box to check a link or message by hand, and the flagged notifications. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HomeScreen(flagged: List<FlaggedItem>, onOpen: (FlaggedItem) -> Unit) {
+internal fun HomeScreen(
+    flagged: List<FlaggedItem>,
+    onOpen: (FlaggedItem) -> Unit,
+    onCheck: (String) -> Unit,
+) {
     val context = LocalContext.current
     val scanned by Store.scannedCount.collectAsState()
 
@@ -86,7 +95,23 @@ internal fun HomeScreen(flagged: List<FlaggedItem>, onOpen: (FlaggedItem) -> Uni
         ActivityResultContracts.RequestPermission()
     ) { granted -> canNotify = granted }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("PhishGuard") }) }) { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.ic_shield),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("PhishGuard")
+                    }
+                },
+            )
+        }
+    ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
@@ -102,6 +127,7 @@ internal fun HomeScreen(flagged: List<FlaggedItem>, onOpen: (FlaggedItem) -> Uni
                     },
                 )
             }
+            item { CheckCard(onCheck) }
             if (!canNotify) item {
                 SetupCard(
                     title = "Allow warnings",
@@ -114,15 +140,12 @@ internal fun HomeScreen(flagged: List<FlaggedItem>, onOpen: (FlaggedItem) -> Uni
                     },
                 )
             }
-            if (hasAccess && canNotify) item {
-                OutlinedButton(
-                    onClick = { Alerts.sendTest(context) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Send a fake scam message to test") }
-            }
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SectionHeading("Flagged notifications", Modifier.weight(1f))
+                    if (hasAccess && canNotify) {
+                        TextButton(onClick = { Alerts.sendTest(context) }) { Text("Send a test") }
+                    }
                     if (flagged.isNotEmpty()) {
                         TextButton(onClick = { Store.clear(context) }) { Text("Clear") }
                     }
@@ -179,6 +202,44 @@ private fun StatusCard(isOn: Boolean, scanned: Int, flagged: Int, onEnable: () -
                 Spacer(Modifier.height(12.dp))
                 Button(onClick = onEnable) { Text("Turn on") }
             }
+        }
+    }
+}
+
+/** Lets the user paste a website address or a message and have it checked now. */
+@Composable
+private fun CheckCard(onCheck: (String) -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            SectionHeading("Check a website or message")
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Paste a lottery or shopping link, or a message you are unsure about.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(MAX_CHECK_CHARS) },
+                label = { Text("Link or message") },
+                placeholder = { Text("https://example-lottery.com") },
+                maxLines = 4,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { onCheck(text.trim()) },
+                enabled = text.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Check") }
+            Text(
+                "Sent to the PhishGuard server to verify. Your phone never opens the link.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }

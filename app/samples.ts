@@ -18,8 +18,16 @@ PayPal Security Team`,
     text: `USPS: Your package could not be delivered due to an incomplete address. Pay a small redelivery fee of $1.99 to reschedule: https://bit.ly/3xUsps-redeliver Reply STOP to opt out.`,
   },
   {
-    label: "Prize message",
-    text: `Congratulations!! You have won a free iPhone 16 in our monthly lucky draw. To claim your prize, share the OTP sent to your phone and pay a processing fee of Rs. 499 at www.amaz0n-rewards.top/claim. Offer expires today!`,
+    label: "Lottery scam",
+    text: `Congratulations! Your mobile number has won $850,000 in the Powerball International Lottery. To release your winnings, pay the processing fee of $199 and share the OTP sent to your phone at http://powerball-winners-claim.top/release. Offer expires today!`,
+  },
+  {
+    label: "Lottery website",
+    text: `https://example-lottery.com`,
+  },
+  {
+    label: "Official lottery",
+    text: `https://www.powerball.com`,
   },
   {
     label: "Ordinary message",

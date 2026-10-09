@@ -23,7 +23,8 @@ export async function POST(request: Request) {
           { streamMode: "updates", signal: request.signal },
         );
         for await (const update of updates) {
-          if (update.scan && aiAvailable()) send({ type: "step", step: "detect" });
+          if (update.scan) send({ type: "step", step: "verify" });
+          if (update.verify_site && aiAvailable()) send({ type: "step", step: "detect" });
           if (update.detect?.detection) send({ type: "step", step: "explain" });
           const report = update.explain?.report ?? update.pattern_report?.report;
           if (report) send({ type: "report", report });

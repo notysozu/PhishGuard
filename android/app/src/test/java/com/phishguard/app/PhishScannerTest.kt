@@ -70,6 +70,19 @@ class PhishScannerTest {
     }
 
     @Test
+    fun aBrandNameOnAThrowawayEndingIsNotTheBrand() {
+        assertEquals(Severity.HIGH, PhishScanner.scan("Sign in at https://paypal.xyz/login").single().severity)
+        assertEquals(0, score("Sign in at https://www.paypal.com/signin"))
+    }
+
+    @Test
+    fun advanceFeesAndTaxesToClaimAPrizeAreFlagged() {
+        for (text in listOf("pay the clearance fee", "tax upfront", "pay the tax first", "release charges apply")) {
+            assertTrue(text, PhishScanner.scan(text).any { it.category == Category.PAYMENT_REQUEST })
+        }
+    }
+
+    @Test
     fun verdictThresholds() {
         assertEquals(Verdict.LIKELY_SAFE, PhishScanner.verdict(PhishScanner.SUSPICIOUS_AT - 1))
         assertEquals(Verdict.SUSPICIOUS, PhishScanner.verdict(PhishScanner.SUSPICIOUS_AT))

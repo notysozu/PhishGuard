@@ -4,7 +4,15 @@ package com.phishguard.app
 object Guidance {
     fun headline(verdict: Verdict) = when (verdict) {
         Verdict.DANGEROUS -> "This looks like a scam. Don't tap or reply."
-        else -> "Something is off here. Treat it with caution."
+        Verdict.SUSPICIOUS -> "Something is off here. Treat it with caution."
+        Verdict.LIKELY_SAFE -> "No obvious warning signs in the wording."
+    }
+
+    fun summary(verdict: Verdict) = when (verdict) {
+        Verdict.LIKELY_SAFE ->
+            "The on-device check found none of the common scam patterns. " +
+                "That is not a guarantee, so confirm anything that asks for money or codes."
+        else -> SUMMARY
     }
 
     const val SUMMARY =

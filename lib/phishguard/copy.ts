@@ -1,4 +1,4 @@
-import type { Category, Verdict } from "./types";
+import type { Category, ReportVerdict } from "./types";
 
 // Fixed wording used when the AI explainer is not available: either no API key
 // is configured, or a model call failed.
@@ -23,7 +23,18 @@ const RECOVERY_STEPS = [
   "If you shared a one-time code or installed anything, contact the real company right away and run a security scan on your device.",
 ];
 
-const GUIDANCE: Record<Verdict, Guidance> = {
+const GUIDANCE: Record<ReportVerdict, Guidance> = {
+  unverified: {
+    headline: "We couldn't verify this website.",
+    summary:
+      "We found no known threats, but nothing confirms who is behind this website either. That doesn't make it a scam. Treat it with care until you have checked it another way.",
+    safetySteps: [
+      "Don't enter passwords, card details or one-time codes on it yet.",
+      "Look up the organisation independently and compare the website address letter by letter.",
+      "If it promises a prize, find the announcement and winner list on the organizer's official website. Real lotteries never ask winners to pay a fee first.",
+    ],
+    ifAlreadyClicked: [],
+  },
   dangerous: {
     headline: "This looks like a scam. Don't click or reply.",
     summary:
@@ -51,7 +62,7 @@ const GUIDANCE: Record<Verdict, Guidance> = {
 };
 
 /** Headline, summary and steps for a verdict when no AI explanation exists. */
-export const fallbackGuidance = (verdict: Verdict): Guidance => GUIDANCE[verdict];
+export const fallbackGuidance = (verdict: ReportVerdict): Guidance => GUIDANCE[verdict];
 
 /** Plain-language label and the "why scammers do this" lesson per category. */
 export const CATEGORY_COPY: Record<Category, { title: string; why: string }> = {

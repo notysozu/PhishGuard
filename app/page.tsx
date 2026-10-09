@@ -12,8 +12,8 @@ export default function Home() {
           Not sure about a message? Check it before you click.
         </h1>
         <p className="mt-3 text-base text-slate-600 dark:text-slate-400">
-          Paste a suspicious email, text or link. We&apos;ll tell you whether it looks like a scam,
-          show you exactly why, and what to do next.
+          Paste a suspicious email, text or website link. We&apos;ll tell you whether it looks like
+          a scam, show the evidence for every finding, and what to do next.
         </p>
       </header>
 

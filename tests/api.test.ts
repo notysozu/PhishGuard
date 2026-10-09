@@ -11,6 +11,8 @@ import { SCAM_TEXT } from "./fixtures";
 before(() => {
   delete process.env.GEMINI_API_KEY;
   delete process.env.GOOGLE_API_KEY;
+  // No outbound requests about the link either: tests must not touch the network.
+  process.env.PHISHGUARD_SITE_CHECKS = "off";
 });
 
 let nextIp = 0;

@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -21,7 +22,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.phishguard.app.Severity
-import com.phishguard.app.Signal
 
 /** A section title that screen readers announce as a heading. */
 @Composable
@@ -33,31 +33,34 @@ internal fun SectionHeading(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** Severity as a labelled pill, so it does not depend on colour alone. */
+/** A small labelled pill. The label carries the meaning; the colour only reinforces it. */
 @Composable
-internal fun SeverityBadge(severity: Severity) {
+internal fun Badge(label: String, color: Color) {
     Text(
-        severity.label,
+        label,
         style = MaterialTheme.typography.labelSmall,
-        color = severity.color,
+        color = color,
         modifier = Modifier
-            .background(severity.color.copy(alpha = 0.12f), RoundedCornerShape(50))
+            .background(color.copy(alpha = 0.12f), RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
 }
 
-/** The notification text with each piece of evidence highlighted. */
+/** A quote to highlight in the message, and how serious it is. */
+internal data class Highlight(val quote: String, val severity: Severity)
+
+/** The message text with each piece of evidence highlighted. */
 @Composable
-internal fun HighlightedMessage(text: String, signals: List<Signal>) {
+internal fun HighlightedMessage(text: String, highlights: List<Highlight>) {
     val annotated = buildAnnotatedString {
         append(text)
-        for (signal in signals) {
-            val start = text.indexOf(signal.evidence, ignoreCase = true)
+        for ((quote, severity) in highlights) {
+            val start = if (quote.isBlank()) -1 else text.indexOf(quote, ignoreCase = true)
             if (start < 0) continue
             addStyle(
-                SpanStyle(background = signal.severity.color.copy(alpha = 0.25f)),
+                SpanStyle(background = severity.color.copy(alpha = 0.25f)),
                 start,
-                start + signal.evidence.length,
+                start + quote.length,
             )
         }
     }
@@ -89,7 +92,7 @@ internal fun ReasonCard(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
-                if (severity != null) SeverityBadge(severity)
+                if (severity != null) Badge(severity.label, severity.color)
             }
             if (evidence.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))

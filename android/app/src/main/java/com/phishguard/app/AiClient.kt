@@ -8,11 +8,8 @@ import java.net.URL
 
 /** Calls the PhishGuard server's JSON API: `POST /api/v1/analyze`. */
 object AiClient {
-    /**
-     * The deployed PhishGuard server. For a local `npm run dev`, use
-     * `http://10.0.2.2:3000` on the emulator (debug builds only).
-     */
-    const val SERVER_URL = "https://phishguard.sonu-kumar.in"
+    /** The PhishGuard server. Set at build time; see `phishguard.serverUrl` in build.gradle.kts. */
+    const val SERVER_URL: String = BuildConfig.SERVER_URL
 
     private const val CONNECT_TIMEOUT_MS = 10_000
     private const val READ_TIMEOUT_MS = 120_000

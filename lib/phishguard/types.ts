@@ -88,8 +88,67 @@ export type RedFlag = {
   explanation: string;
 };
 
+/** How sure we are about a website, from worst to best. */
+export type SiteClassification =
+  | "confirmed_malicious" // on a threat list
+  | "suspicious" // concrete warning signs, but not confirmed
+  | "unverified" // nothing bad found, nothing confirming it either
+  | "no_known_issues"; // corroborated and clean
+
+export type CheckOutcome = "good" | "neutral" | "caution" | "bad" | "unavailable";
+
+export type SiteCheckId =
+  | "safe_browsing"
+  | "virustotal"
+  | "domain_age"
+  | "https"
+  | "redirects"
+  | "impersonation"
+  | "trustpilot"
+  | "lottery"
+  | "payment";
+
+/** One line of evidence in the website check, with its effect on the trust score. */
+export type SiteCheck = {
+  id: SiteCheckId;
+  label: string;
+  outcome: CheckOutcome;
+  /** The finding in one sentence. */
+  summary: string;
+  /** The facts behind it, and what it does and does not prove. */
+  evidence: string;
+  /** Points this check added to (or took from) the trust score. */
+  impact: number;
+  /** Where the reader can confirm it themselves. Always a trusted host. */
+  source?: { name: string; url: string };
+};
+
+/** Result of verifying the main link in a message. */
+export type SiteReport = {
+  /** The link as checked. */
+  url: string;
+  /** Where it ends up after redirects. */
+  finalUrl: string;
+  /** Registrable domain of `finalUrl`. */
+  domain: string;
+  classification: SiteClassification;
+  /** 0 (no trust) to 100. Starts at 50 and moves by each check's `impact`. */
+  trustScore: number;
+  /** Set when the score was capped by the classification. */
+  scoreNote?: string;
+  headline: string;
+  summary: string;
+  recommendedAction: string;
+  checks: SiteCheck[];
+  /** Every address visited, starting with `url`. */
+  redirectChain: string[];
+};
+
+/** "unverified": the message is not risky, but its website could not be confirmed. */
+export type ReportVerdict = Verdict | "unverified";
+
 export type Report = {
-  verdict: Verdict;
+  verdict: ReportVerdict;
   riskScore: number;
   headline: string;
   summary: string;
@@ -100,10 +159,12 @@ export type Report = {
   /** "ai" = both agents ran; "pattern" = offline pattern scanner only. */
   mode: "ai" | "pattern";
   notice?: string;
+  /** Present when the message contains a link and website checks are enabled. */
+  site?: SiteReport;
 };
 
 /** Workflow stages the web page shows progress for. */
-export type ProgressStep = "scan" | "detect" | "explain";
+export type ProgressStep = "scan" | "verify" | "detect" | "explain";
 
 /** One line of the NDJSON stream returned by POST /api/analyze. */
 export type StreamEvent =

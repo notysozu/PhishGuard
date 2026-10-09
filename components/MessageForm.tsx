@@ -20,7 +20,7 @@ export function MessageForm({ value, onChange, onSubmit, busy }: Props) {
       }}
     >
       <label htmlFor="message" className="block text-sm font-medium">
-        Message to check
+        Message or website link to check
       </label>
       <textarea
         id="message"
@@ -36,7 +36,7 @@ export function MessageForm({ value, onChange, onSubmit, busy }: Props) {
         rows={8}
         spellCheck={false}
         aria-describedby="message-hint"
-        placeholder="Paste the email, text message or link here…"
+        placeholder="Paste an email, a text message, or a website address such as https://example-lottery.com"
         className="mt-2 w-full resize-y rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-sm leading-relaxed placeholder:font-sans placeholder:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:placeholder:text-slate-400"
       />
 
@@ -62,7 +62,7 @@ export function MessageForm({ value, onChange, onSubmit, busy }: Props) {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p id="message-hint" className={`text-xs ${MUTED}`}>
-          We never open links in your message, and nothing you paste is stored.
+          Your device never opens the link, and nothing you paste is stored.
         </p>
         <button
           type="submit"

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isLinkOnly } from "@/lib/phishguard/report";
 import type { Report } from "@/lib/phishguard/types";
 import { AnnotatedMessage } from "./AnnotatedMessage";
 import { ListCard } from "./ListCard";
 import { RedFlagList } from "./RedFlagList";
+import { SiteCheckCard } from "./SiteCheckCard";
 import { MUTED } from "./styles";
 import { VerdictBanner } from "./VerdictBanner";
 
@@ -14,6 +16,7 @@ type Props = { report: Report; message: string };
 export function ReportView({ report, message }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const [activeFlag, setActiveFlag] = useState<number | null>(null);
+  const siteFirst = isLinkOnly(message);
 
   // Move focus to the result when it appears, so keyboard and screen-reader
   // users land on the verdict instead of staying on the submit button.
@@ -33,6 +36,9 @@ export function ReportView({ report, message }: Props) {
       className="mt-8 scroll-mt-6 space-y-6 outline-none"
     >
       <VerdictBanner report={report} />
+
+      {/* For a bare address the website check is the result, so it comes first. */}
+      {siteFirst && report.site && <SiteCheckCard site={report.site} />}
 
       {report.redFlags.length > 0 && (
         <section aria-labelledby="red-flags-heading">
@@ -55,6 +61,8 @@ export function ReportView({ report, message }: Props) {
           />
         </section>
       )}
+
+      {!siteFirst && report.site && <SiteCheckCard site={report.site} />}
 
       {report.reassuringSigns.length > 0 && (
         <ListCard title="What looks genuine" items={report.reassuringSigns} />

@@ -1,4 +1,4 @@
-import type { Detection, Explanation } from "../lib/phishguard/types";
+import type { Detection, Explanation, SiteReport } from "../lib/phishguard/types";
 
 export const SCAM_TEXT =
   "Urgent: your account has been suspended. Verify at http://paypal.com.secure-login.xyz/restore";
@@ -33,3 +33,45 @@ export const explanation: Explanation = {
   safetySteps: ["Open the PayPal app yourself."],
   ifAlreadyClicked: ["Change your password."],
 };
+
+/** A website report with sensible defaults; override what the test is about. */
+export const siteReport = (overrides: Partial<SiteReport> = {}): SiteReport => ({
+  url: "https://example-lottery.com/",
+  finalUrl: "https://example-lottery.com/",
+  domain: "example-lottery.com",
+  classification: "unverified",
+  trustScore: 45,
+  headline: "Unverified website",
+  summary: "No reliable confirmation of the lottery organizer was found.",
+  recommendedAction:
+    "Verify the announcement on the organizer's official website before providing personal details or paying any fees.",
+  checks: [
+    {
+      id: "domain_age",
+      label: "Domain age and ownership",
+      outcome: "bad",
+      summary: "Created only 12 days ago",
+      evidence: "example-lottery.com was registered on 1 January 2026.",
+      impact: -25,
+      source: { name: "ICANN registration lookup", url: "https://lookup.icann.org/en/lookup" },
+    },
+    {
+      id: "trustpilot",
+      label: "Trustpilot reputation",
+      outcome: "unavailable",
+      summary: "Not checked",
+      evidence: "This PhishGuard server has no Trustpilot API key, so this check was skipped.",
+      impact: 0,
+    },
+    {
+      id: "https",
+      label: "Secure connection (HTTPS)",
+      outcome: "good",
+      summary: "Uses an encrypted connection",
+      evidence: "The address starts with https.",
+      impact: 5,
+    },
+  ],
+  redirectChain: ["https://example-lottery.com/"],
+  ...overrides,
+});

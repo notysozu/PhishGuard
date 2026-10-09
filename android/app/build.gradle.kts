@@ -12,8 +12,12 @@ android {
         applicationId = "com.phishguard.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+
+        // Override for local development: ./gradlew installDebug -Pphishguard.serverUrl=http://10.0.2.2:3000
+        val serverUrl = project.findProperty("phishguard.serverUrl") ?: "https://phishguard.sonu-kumar.in"
+        buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
 
     buildTypes {
@@ -27,6 +31,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

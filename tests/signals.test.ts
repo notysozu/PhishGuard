@@ -9,7 +9,7 @@ const sample = (label: string) => SAMPLES.find((s) => s.label === label)!.text;
 test("built-in scam samples are flagged, the ordinary one is not", () => {
   assert.ok(score(sample("Bank email")) >= 65);
   assert.ok(score(sample("Delivery text")) >= 30);
-  assert.ok(score(sample("Prize message")) >= 65);
+  assert.ok(score(sample("Lottery scam")) >= 65);
   assert.equal(score(sample("Ordinary message")), 0);
 });
 
